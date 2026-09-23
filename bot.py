@@ -201,7 +201,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             [("Выездные мероприятия", "field_events")],
             [("Районные", "district_events")],
         ])
-        await event.answer()
+        await event.answer(new_text=".")
         await event.message.answer(
             text="Выберите тип мероприятия:",
             attachments=[builder.as_markup()],
@@ -216,7 +216,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             [("Спартакиады", "spartakiads")],
             [("↩️ Вернуться", "create_report")],
         ])
-        await event.answer()
+        await event.answer(new_text=".")
         await event.message.answer(
             text="Выберите категорию выездного мероприятия:",
             attachments=[builder.as_markup()],
@@ -231,7 +231,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             [("РДМ", "district_events:rdm")],
             [("↩️ Вернуться", "create_report")],
         ])
-        await event.answer()
+        await event.answer(new_text=".")
         await event.message.answer(
             text="Выберите категорию районного мероприятия:",
             attachments=[builder.as_markup()],
@@ -247,7 +247,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             [("Трудовые коллективы", "spart:work_collectives")],
             [("↩️ Вернуться", "field_events")],
         ])
-        await event.answer()
+        await event.answer(new_text=".")
         await event.message.answer(
             text="Выберите вид спартакиады:",
             attachments=[builder.as_markup()],
@@ -260,7 +260,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             category=name,
             type="Выездные мероприятия",
         )
-        await event.answer()
+        await event.answer(new_text=f"✅ {name}")
         await event.message.answer(
             text=f"✅ Выбрано: {name}\n\n"
             "Пожалуйста, ответьте на несколько вопросов:\n\n"
@@ -276,7 +276,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             category=name,
             type="Районные",
         )
-        await event.answer()
+        await event.answer(new_text=f"✅ {name}")
         await event.message.answer(
             text=f"✅ Выбрано: {name}\n\n"
             "Пожалуйста, ответьте на несколько вопросов:\n\n"
@@ -293,7 +293,7 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
             sub_category=name,
             type="Выездные мероприятия",
         )
-        await event.answer()
+        await event.answer(new_text=f"✅ Спартакиады → {name}")
         await event.message.answer(
             text=f"✅ Выбрано: Спартакиады → {name}\n\n"
             "Пожалуйста, ответьте на несколько вопросов:\n\n"
@@ -303,20 +303,21 @@ async def handle_callbacks(event: MessageCallback, context: MemoryContext):
         await context.set_state(ReportStates.waiting_for_name)
 
     elif payload == "skip_link":
-        current = await context.get_state()
-        if current == ReportStates.waiting_for_link.state:
-            await context.update_data(link="Не указано", photos=[])
-            await context.set_state(ReportStates.waiting_for_photo)
-            await event.message.answer(
-                text="✅ Ссылка: Не указано\n\n"
-                "8️⃣ Фото\n"
-                "Отправьте до 10 фотографий мероприятия по очереди.\n"
-                "По завершении напишите 'готово' или 'пропустить' для пропуска."
-            )
-        await event.answer()
+        await context.update_data(link="Не указано", photos=[])
+        await context.set_state(ReportStates.waiting_for_photo)
+        await event.answer(new_text="Ссылка пропущена")
+        await event.message.answer(
+            text="✅ Ссылка: Не указано\n\n"
+            "8️⃣ Фото\n"
+            "Отправьте до 10 фотографий мероприятия по очереди.\n"
+            "По завершении напишите 'готово' или 'пропустить' для пропуска."
+        )
 
     else:
-        await event.answer()
+        try:
+            await event.answer(new_text=".")
+        except Exception:
+            pass
 
 
 @dp.message_created(F.message.body.text, ReportStates.waiting_for_name)
