@@ -83,14 +83,6 @@ def is_image_attachment(att) -> bool:
     return str(t).lower() == "image"
 
 
-def attachment_to_dict(att) -> dict:
-    if isinstance(att, dict):
-        return att
-    if hasattr(att, "model_dump"):
-        return att.model_dump()
-    return dict(att)
-
-
 async def finalize_report(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
     photos = data.get("photos", []) or []
@@ -128,23 +120,16 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
 👤 Ответственный/заполнитель: {user_info}
 """
 
-    attachments = []
-    if photos:
-        attachments = list(photos)
-        attachments[0] = {**attachments[0], "caption": report}
+    attachments = list(photos) if photos else []
 
     await event.message.answer(text=report, attachments=attachments)
 
     if MANAGER_CHAT_ID:
         try:
-            mgr_attachments = []
-            if photos:
-                mgr_attachments = list(photos)
-                mgr_attachments[0] = {**mgr_attachments[0], "caption": report}
             await bot.send_message(
                 chat_id=MANAGER_CHAT_ID,
                 text=report,
-                attachments=mgr_attachments,
+                attachments=list(photos) if photos else [],
             )
         except Exception as e:
             logger.warning(f"Не удалось отправить руководителю: {e}")
@@ -459,7 +444,7 @@ async def process_photo(event: MessageCreated, context: MemoryContext):
                         text="Вы уже загрузили 10 фотографий. Напишите 'готово'."
                     )
                     return
-                photos.append(attachment_to_dict(att))
+                photos.append(att)
                 has_new_image = True
         if has_new_image:
             await context.update_data(photos=photos)
