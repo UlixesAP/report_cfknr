@@ -3,6 +3,7 @@ import logging
 
 from maxapi import Bot, Dispatcher, F
 from maxapi.types import (
+    BotStarted,
     MessageCreated,
     MessageCallback,
     Command,
@@ -67,9 +68,11 @@ def make_kb(buttons: list[list[tuple[str, str]]]) -> InlineKeyboardBuilder:
     return builder
 
 
-def get_user_info(event: MessageCreated) -> str:
-    user = event.message.chat
-    name = user.title or f"{user.first_name or ''} {user.last_name or ''}".strip()
+def get_user_info(event) -> str:
+    chat = getattr(event, 'chat', None)
+    if not chat:
+        return "Неизвестно"
+    name = getattr(chat, 'title', None) or f"{getattr(chat, 'first_name', '') or ''} {getattr(chat, 'last_name', '') or ''}".strip()
     return name or "Неизвестно"
 
 
@@ -142,12 +145,26 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
     )
 
 
+@dp.bot_started()
+async def on_bot_started(event: BotStarted):
+    """Когда пользователь впервые нажимает Старт в диалоге с ботом"""
+    builder = make_kb([
+        [("Создать отчет", "create_report")],
+    ])
+    name = event.chat.first_name or ""
+    await bot.send_message(
+        chat_id=event.chat.id,
+        text=f"Привет, {name}!\nЧто будем делать?",
+        attachments=[builder.as_markup()],
+    )
+
+
 @dp.message_created(Command("start"))
 async def cmd_start(event: MessageCreated):
     builder = make_kb([
         [("Создать отчет", "create_report")],
     ])
-    name = event.message.chat.first_name or ""
+    name = getattr(event.chat, 'first_name', '') or ""
     await event.message.answer(
         text=f"Привет, {name}!\nЧто будем делать?",
         attachments=[builder.as_markup()],
@@ -444,15 +461,12 @@ async def process_photo(event: MessageCreated, context: MemoryContext):
 
 @dp.message_created()
 async def fallback_handler(event: MessageCreated, context: MemoryContext):
-    chat_type = getattr(event.message.chat, "type", None)
-    if chat_type in ("group", "supergroup", "channel"):
-        return
     current = await context.get_state()
     if current:
         await event.message.answer(
             text="Пожалуйста, ответьте на текущий вопрос."
         )
-    else:
+    elif event.message.body.text:
         await event.message.answer(text=f"Вы написали: {event.message.body.text}")
 
 
