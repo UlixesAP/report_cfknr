@@ -76,6 +76,21 @@ def get_user_info(event) -> str:
     return name or "Неизвестно"
 
 
+def is_image_attachment(att) -> bool:
+    t = getattr(att, "type", None)
+    if t is None and isinstance(att, dict):
+        t = att.get("type")
+    return str(t).lower() == "image"
+
+
+def attachment_to_dict(att) -> dict:
+    if isinstance(att, dict):
+        return att
+    if hasattr(att, "model_dump"):
+        return att.model_dump()
+    return dict(att)
+
+
 async def finalize_report(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
     photos = data.get("photos", []) or []
@@ -416,26 +431,29 @@ async def process_photo(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
     photos = data.get("photos", []) or []
 
-    if event.message.body.attachments:
-        for att in event.message.body.attachments:
-            if isinstance(att, dict) and att.get("type") == "image":
+    attachments = getattr(event.message.body, "attachments", None)
+    if attachments:
+        has_new_image = False
+        for att in attachments:
+            if is_image_attachment(att):
                 if len(photos) >= 10:
                     await event.message.answer(
                         text="Вы уже загрузили 10 фотографий. Напишите 'готово'."
                     )
                     return
-                photos.append(att)
-        await context.update_data(photos=photos)
-
-        if len(photos) >= 10:
-            await event.message.answer(text="📸 Добавлено 10/10 фото. Напишите 'готово'.")
-        else:
-            await event.message.answer(
-                text=f"📸 Фото {len(photos)} сохранено. "
-                "Отправьте еще или напишите 'готово'. "
-                "Если хотите завершить без фото, напишите 'пропустить'."
-            )
-        return
+                photos.append(attachment_to_dict(att))
+                has_new_image = True
+        if has_new_image:
+            await context.update_data(photos=photos)
+            if len(photos) >= 10:
+                await event.message.answer(text="📸 Добавлено 10/10 фото. Напишите 'готово'.")
+            else:
+                await event.message.answer(
+                    text=f"📸 Фото {len(photos)} сохранено. "
+                    "Отправьте еще или напишите 'готово'. "
+                    "Если хотите завершить без фото, напишите 'пропустить'."
+                )
+            return
 
     if event.message.body.text:
         text = event.message.body.text.strip().lower()
