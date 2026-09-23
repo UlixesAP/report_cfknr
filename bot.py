@@ -431,6 +431,24 @@ async def process_photo(event: MessageCreated, context: MemoryContext):
     data = await context.get_data()
     photos = data.get("photos", []) or []
 
+    text = getattr(event.message.body, "text", None)
+    if text:
+        text = text.strip().lower()
+        if text == "пропустить":
+            if photos:
+                await event.message.answer(
+                    text="Вы уже добавили фотографии. Напишите 'готово'."
+                )
+                return
+            await context.update_data(photos=[])
+            await finalize_report(event, context)
+            return
+
+        if text == "готово":
+            await context.update_data(photos=photos)
+            await finalize_report(event, context)
+            return
+
     attachments = getattr(event.message.body, "attachments", None)
     if attachments:
         has_new_image = False
@@ -453,24 +471,6 @@ async def process_photo(event: MessageCreated, context: MemoryContext):
                     "Отправьте еще или напишите 'готово'. "
                     "Если хотите завершить без фото, напишите 'пропустить'."
                 )
-            return
-
-    if event.message.body.text:
-        text = event.message.body.text.strip().lower()
-
-        if text == "пропустить":
-            if photos:
-                await event.message.answer(
-                    text="Вы уже добавили фотографии. Напишите 'готово'."
-                )
-                return
-            await context.update_data(photos=[])
-            await finalize_report(event, context)
-            return
-
-        if text == "готово":
-            await context.update_data(photos=photos)
-            await finalize_report(event, context)
             return
 
     await event.message.answer(
