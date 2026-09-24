@@ -122,15 +122,15 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
 
     attachments = list(photos) if photos else []
 
-    await event.message.answer(text=report, attachments=attachments)
+    await event.message.answer(text=report, attachments=attachments if attachments else None)
 
     if MANAGER_CHAT_ID:
         try:
-            await bot.send_message(
+            resp = await bot.send_message(
                 chat_id=MANAGER_CHAT_ID,
                 text=report,
-                attachments=list(photos) if photos else [],
             )
+            logger.info(f"Отправлено руководителю, ответ: {resp}")
         except Exception as e:
             logger.warning(f"Не удалось отправить руководителю: {e}")
 
