@@ -68,14 +68,6 @@ def make_kb(buttons: list[list[tuple[str, str]]]) -> InlineKeyboardBuilder:
     return builder
 
 
-def get_user_info(event) -> str:
-    chat = getattr(event, 'chat', None)
-    if not chat:
-        return "Неизвестно"
-    name = getattr(chat, 'title', None) or f"{getattr(chat, 'first_name', '') or ''} {getattr(chat, 'last_name', '') or ''}".strip()
-    return name or "Неизвестно"
-
-
 def is_image_attachment(att) -> bool:
     t = getattr(att, "type", None)
     if t is None and isinstance(att, dict):
