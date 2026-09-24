@@ -88,7 +88,16 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
     photos = data.get("photos", []) or []
     photo_count = len(photos)
 
-    user_info = get_user_info(event)
+    sender = getattr(event.message, "sender", None) or getattr(event, "chat", None) or getattr(event.message, "chat", None)
+    if sender:
+        first = getattr(sender, "first_name", "") or ""
+        last = getattr(sender, "last_name", "") or ""
+        username = getattr(sender, "username", "") or ""
+        user_info = f"{first} {last}".strip()
+        if username:
+            user_info += f" (@{username})"
+    else:
+        user_info = "Неизвестно"
 
     event_type = data.get("type", "Не указано")
     category = data.get("category", "Не указано")
@@ -126,9 +135,11 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
 
     if MANAGER_CHAT_ID:
         try:
+            mgr_attachments = list(photos) if photos else None
             resp = await bot.send_message(
                 chat_id=MANAGER_CHAT_ID,
                 text=report,
+                attachments=mgr_attachments,
             )
             logger.info(f"Отправлено руководителю, ответ: {resp}")
         except Exception as e:
