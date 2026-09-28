@@ -150,15 +150,14 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
 
 @dp.bot_started()
 async def on_bot_started(event: BotStarted):
-    """Когда пользователь впервые нажимает Старт в диалоге с ботом"""
-    builder = make_kb([
-        [("Создать отчет", "create_report")],
-    ])
-    name = event.chat.first_name or ""
+    chat = event.chat
+    name = getattr(chat, "title", None) or getattr(chat, "first_name", "") or ""
     await bot.send_message(
-        chat_id=event.chat.id,
+        chat_id=chat.id,
         text=f"Привет, {name}!\nЧто будем делать?",
-        attachments=[builder.as_markup()],
+        attachments=[make_kb([
+            [("Создать отчет", "create_report")],
+        ]).as_markup()],
     )
 
 
