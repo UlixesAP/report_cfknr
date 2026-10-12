@@ -151,9 +151,14 @@ async def finalize_report(event: MessageCreated, context: MemoryContext):
 @dp.bot_started()
 async def on_bot_started(event: BotStarted):
     chat = event.chat
-    name = getattr(chat, "title", None) or getattr(chat, "first_name", "") or ""
+    if chat is None:
+        name = "Пользователь"
+    elif chat.dialog_with_user:
+        name = chat.dialog_with_user.first_name or "Пользователь"
+    else:
+        name = chat.title or "Пользователь"
     await bot.send_message(
-        chat_id=chat.id,
+        chat_id=event.chat_id,
         text=f"Привет, {name}!\nЧто будем делать?",
         attachments=[make_kb([
             [("Создать отчет", "create_report")],
@@ -166,7 +171,8 @@ async def cmd_start(event: MessageCreated):
     builder = make_kb([
         [("Создать отчет", "create_report")],
     ])
-    name = getattr(event.chat, 'first_name', '') or ""
+    sender = event.message.sender
+    name = (sender.first_name or "") if sender else ""
     await event.message.answer(
         text=f"Привет, {name}!\nЧто будем делать?",
         attachments=[builder.as_markup()],
